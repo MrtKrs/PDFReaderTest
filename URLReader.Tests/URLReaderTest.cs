@@ -44,7 +44,7 @@ namespace URLReader.Tests
             Assert.NotNull(result);
             Assert.Equal(expectSuccess, result.Success);
 
-            var contentString = await result.PDFContent.ReadAsStringAsync();
+            var contentString = await result.PDFContent.ReadAsStringAsync(TestContext.Current.CancellationToken);
             Assert.Equal(expectedContentString, contentString);
 
         }
