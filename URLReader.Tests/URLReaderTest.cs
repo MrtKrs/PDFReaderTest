@@ -2,27 +2,53 @@
 using Moq;
 using Moq.Protected;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
 
 namespace URLReader.Tests
 {
     public class URLReaderTest
     {
-        [Fact]
-        public async Task UrlReader_Gets_Valid_Content()
+        [Theory]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Application.Pdf, true, "Test content")]
+        [InlineData(HttpStatusCode.Accepted, MediaTypeNames.Application.Pdf, true, "Test content")]
+        [InlineData(HttpStatusCode.Created, MediaTypeNames.Application.Pdf, true, "Test content")]
+
+        [InlineData(HttpStatusCode.BadRequest, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.NotFound, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.InternalServerError, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.Redirect, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.BadGateway, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.Forbidden, MediaTypeNames.Application.Pdf, false, "")]
+        [InlineData(HttpStatusCode.Unauthorized, MediaTypeNames.Application.Pdf, false, "")]
+
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Application.Json, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Application.Octet, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Text.Html, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Text.Xml, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Multipart.FormData, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Gif, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Jpeg, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Png, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Icon, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Bmp, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Tiff, false, "")]
+        [InlineData(HttpStatusCode.OK, MediaTypeNames.Image.Svg, false, "")]
+        public async Task UrlReader_Only_Reads_PDF_Content(HttpStatusCode withResponseHttpStatusCode, string withResponseMediaType, bool expectSuccess, string expectedContentString)
         {
-            var sut = GetSut();
+            var sut = GetSut(withResponseHttpStatusCode, withResponseMediaType);
 
             var result = await sut.ReadURL(new Uri("http://fakeUriForTest.com"));
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.Equal(expectSuccess, result.Success);
 
             var contentString = await result.PDFContent.ReadAsStringAsync();
-            Assert.Equal("Test content", contentString);
+            Assert.Equal(expectedContentString, contentString);
 
         }
-        private URLReader GetSut()
+        private URLReader GetSut(HttpStatusCode withResponseHttpStatusCode, string withResponseMediaType)
         {
             var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             handlerMock
@@ -36,10 +62,10 @@ namespace URLReader.Tests
                // prepare the expected response of the mocked http call
                .ReturnsAsync(new HttpResponseMessage()
                {
-                   StatusCode = HttpStatusCode.OK,
+                   StatusCode = withResponseHttpStatusCode,
                    Content = new StringContent("Test content",
                                                 Encoding.UTF8,
-                                                "application/pdf"),
+                                                withResponseMediaType),
                })
                .Verifiable();
             // use real http client with mocked handler here
