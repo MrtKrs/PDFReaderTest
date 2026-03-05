@@ -1,0 +1,15 @@
+## Names
+* Solution name "PDFReader" gives an impression that the application is for viewing or somehow getting information out of PDF files rather than retrieving those files.
+* Project name PDFUrlExaminer. This project is responsible for processing the URLs that have been found and saving the files, but the name suggests it focuses on just the the URLs.
+
+## Other
+FileWriter assumes the output directory exists.
+
+I would check that the application is able to access the output directory, including write access before starting the download process.
+
+No parallelisation of downloads. Some of the files have very slow download speeds, so the process will be doing a lot of waiting.
+
+Make the download timeout configurable, so the client can opt to let the whole process take longer, ensuring they get the files from some of those slower hosts.
+
+DOM Excel processing, if the client's inputfile grows this can hold the application back from scaling.
+
